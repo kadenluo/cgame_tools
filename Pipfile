@@ -5,6 +5,8 @@ name = "pypi"
 
 [packages]
 pillow = "*"
+click = "*"
+pyinstaller = "*"
 
 [dev-packages]
 
