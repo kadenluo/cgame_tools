@@ -5,8 +5,8 @@ name = "pypi"
 
 [packages]
 pillow = "*"
-click = "*"
 pyinstaller = "*"
+python-nubia = "*"
 
 [dev-packages]
 
