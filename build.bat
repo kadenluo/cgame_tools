@@ -1,3 +1,4 @@
 pipenv --python 3.10
 pipenv install
-pipenv run pyinstaller --noconsole --onefile --distpath ./ ./tools.py
+pipenv run pyinstaller --console --onefile --distpath ./ ./tools.py
+pause
