@@ -13,7 +13,6 @@ def fillColor(input_dir, output_dir, backColor="#ffffff"):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     color = ImageColor.getcolor(backColor, "RGBA")
-    sample_method = Image.Resampling.NEAREST
     for filename in os.listdir(input_dir):
         filepath = os.path.join(input_dir, filename)
         if os.path.isdir(filepath):
@@ -41,7 +40,7 @@ def scaleImage(input_dir, output_dir, size, boundary_size, backColor="#ffffff"):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     color = ImageColor.getcolor(backColor, "RGBA")
-    sample_method = Image.Resampling.NEAREST
+    sample_method = Image.Resampling.LANCZOS
     for filename in os.listdir(input_dir):
         filepath = os.path.join(input_dir, filename)
         if os.path.isdir(filepath):
@@ -69,7 +68,7 @@ def scaleImage(input_dir, output_dir, size, boundary_size, backColor="#ffffff"):
         else:
             width = maxlen
             height = maxlen
-        src_img = src_img.resize((width, height), Image.Resampling.NEAREST)
+        src_img = src_img.resize((width, height), sample_method)
 
         x = int((bgImg.width-src_img.width)/2)
         y = int((bgImg.height-src_img.height)/2)
@@ -230,6 +229,24 @@ def cropImages(input_dir, output_dir, top, bottom, left, right):
         outpath = os.path.join(output_dir,  f"{basename}.png")
         bgImg.save(outpath, format="png", dpi=(300,300))
 
+def trunImages(input_dir, output_dir):
+    '''翻转图片'''
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    for filename in os.listdir(input_dir):
+        filepath = os.path.join(input_dir, filename)
+        #if os.path.isdir(filepath):
+         #   trunImages(filepath, os.path.join(output_dir, filename))
+          #  continue
+        basename = os.path.splitext(filename)[0]
+        basename, ext = os.path.splitext(filename)
+        if ext != ".png" and ext != ".jpg":
+            continue
+        src_img = Image.open(filepath).convert("RGBA")
+        bgImg = src_img.transpose(Image.FLIP_LEFT_RIGHT)
+        outpath = os.path.join(output_dir,  f"{basename}.png")
+        bgImg.save(outpath, format="png", dpi=(300,300))
+
 def main():
     default_input_dir = "./input"
     default_output_dir = "./output"
@@ -241,6 +258,7 @@ def main():
     print("6 - 调整图片到目标大小并留白：")
     print("7 - 合并图片;")
     print("8 - 裁剪图片;")
+    print("9 - 翻转图片;")
     print("q - 退出;")
     func = (input("请输入你要使用的功能>>")).strip()
     if func == "q":
@@ -274,7 +292,8 @@ def main():
         output_dir = input("请输入导出图片目录(目录相同会覆盖，注意备份, 默认为'./output'):") or default_output_dir
         size = int(input("请输入目标尺寸大小(默认为512):") or 512)
         boundary_size = int(input("请输入留白大小(默认为0):") or 0)
-        scaleImage(input_dir, output_dir, size, boundary_size, backColor="#ffffff")
+        background_color = input("请输入背景颜色(默认为#ffffff):") or '#ffffff'
+        scaleImage(input_dir, output_dir, size, boundary_size, background_color)
     elif func == "7":
         input_dir = input("请输入原始图片目录(默认为'./input'):") or default_input_dir
         output_dir = input("请输入导出图片目录(默认为'./output'):") or default_output_dir
@@ -289,6 +308,10 @@ def main():
         left = int(input("请输入left边裁剪像素:") or 0)
         right = int(input("请输入right边裁剪像素:") or 0)
         cropImages(input_dir, output_dir, top, bottom, left, right)
+    elif func == "9":
+        input_dir = input("请输入原始图片目录(默认为'./input'):") or default_input_dir
+        output_dir = input("请输入导出图片目录(目录相同会覆盖，注意备份, 默认为'./output'):") or default_output_dir
+        trunImages(input_dir, output_dir)
     else:
         print("invalid input.")
         return
@@ -297,6 +320,7 @@ def main():
 if __name__ == "__main__":
     try:
         main()
+        #scaleImage("./in", "./out", 1024, 10)
         #mergeImages("./in", "out", 3, 2)
         #cropImages("./in", "./out", 90, 0, 50, 50)
     except Exception as e:
