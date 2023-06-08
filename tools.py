@@ -51,23 +51,22 @@ def scaleImage(input_dir, output_dir, size, boundary_size, backColor="#ffffff"):
         if ext != ".png" and ext != ".jpg":
             continue
         src_img = Image.open(filepath).convert("RGBA")
-        # bgImg: Image.Image = Image.new("RGBA", (512, 512), (255, 255, 255,255))
         width = src_img.width
         height = src_img.height
-
-        bgImg: Image.Image = Image.new("RGBA", (size, size), color)
 
         maxlen = size - 2*boundary_size
         if width > height:
             height = int(maxlen * height / width)
             width = maxlen 
         elif width < height:
-            old_height = height
             width = int(maxlen * width / height)
             height = maxlen 
         else:
             width = maxlen
             height = maxlen
+        
+        #bgImg: Image.Image = Image.new("RGBA", (width, height), color)
+        bgImg: Image.Image = Image.new("RGBA", (size, size), color)
         src_img = src_img.resize((width, height), sample_method)
 
         x = int((bgImg.width-src_img.width)/2)
@@ -78,6 +77,39 @@ def scaleImage(input_dir, output_dir, size, boundary_size, backColor="#ffffff"):
 
         outpath = os.path.join(output_dir,  f"{basename}.png")
         bgImg.save(outpath, format="png", dpi=(300,300))
+
+def scaleImageV2(input_dir, output_dir, size):
+    '''放大缩小图片'''
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    sample_method = Image.Resampling.LANCZOS
+    for filename in os.listdir(input_dir):
+        filepath = os.path.join(input_dir, filename)
+        if os.path.isdir(filepath):
+            scaleImageV2(filepath, os.path.join(output_dir, filename), size)
+            continue
+        basename = os.path.splitext(filename)[0]
+        basename, ext = os.path.splitext(filename)
+        if ext != ".png" and ext != ".jpg":
+            continue
+        src_img = Image.open(filepath).convert("RGBA")
+        width = src_img.width
+        height = src_img.height
+
+        maxlen = size
+        if width > height:
+            height = int(maxlen * height / width)
+            width = maxlen 
+        elif width < height:
+            width = int(maxlen * width / height)
+            height = maxlen 
+        else:
+            width = maxlen
+            height = maxlen
+        
+        src_img = src_img.resize((width, height), sample_method)
+        outpath = os.path.join(output_dir,  f"{basename}.png")
+        src_img.save(outpath, format="png", dpi=(300,300))
 
 def createTxt(input_dir, output_dir):
     '''创建同名txt文件'''
@@ -247,6 +279,45 @@ def trunImages(input_dir, output_dir):
         outpath = os.path.join(output_dir,  f"{basename}.png")
         bgImg.save(outpath, format="png", dpi=(300,300))
 
+
+def clearImageTags(input_dir, output_dir):
+    for filename in os.listdir(input_dir):
+        filepath = os.path.join(input_dir, filename)
+        if os.path.isdir(filepath):
+            clearImageTags(filepath, os.path.join(output_dir, filename))
+            continue
+
+        basename, ext = os.path.splitext(filename)
+        if ext != ".png":
+            continue
+
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+
+        image = Image.open(filepath)
+        image.save(os.path.join(output_dir, filename))
+
+def _dealClassifyImages(input_dir, output_dir):
+    for filename in os.listdir(input_dir):
+        filepath = os.path.join(input_dir, filename)
+        if os.path.isdir(filepath):
+            continue
+        basename, ext = os.path.splitext(filename)
+        dirname, classify, index = basename.split("_")
+        targetdir = os.path.join(output_dir, classify)
+        if not os.path.exists(targetdir):
+            os.makedirs(targetdir)
+        copyfile(filepath, os.path.join(targetdir, f"{index}{ext}"))
+
+def classifyImages(input_dir, output_dir):
+    for filename in os.listdir(input_dir):
+        filepath = os.path.join(input_dir, filename)
+        if not os.path.isdir(filepath):
+            continue
+        print(f"deal dir({filepath})...")
+        _dealClassifyImages(filepath, os.path.join(output_dir, filename))
+
+
 def main():
     default_input_dir = "./input"
     default_output_dir = "./output"
@@ -259,6 +330,9 @@ def main():
     print("7 - 合并图片;")
     print("8 - 裁剪图片;")
     print("9 - 翻转图片;")
+    print("10 - 清楚图片tag;")
+    print("11 - 等比缩放图片")
+    print("12 - 图片分类")
     print("q - 退出;")
     func = (input("请输入你要使用的功能>>")).strip()
     if func == "q":
@@ -312,6 +386,19 @@ def main():
         input_dir = input("请输入原始图片目录(默认为'./input'):") or default_input_dir
         output_dir = input("请输入导出图片目录(目录相同会覆盖，注意备份, 默认为'./output'):") or default_output_dir
         trunImages(input_dir, output_dir)
+    elif func == "10":
+        input_dir = input("请输入原始图片目录(默认为'./input'):") or default_input_dir
+        output_dir = input("请输入导出图片目录(目录相同会覆盖，注意备份, 默认为'./output'):") or default_output_dir
+        clearImageTags(input_dir, output_dir)
+    elif func == "11":
+        input_dir = input("请输入原始图片目录(默认为'./input'):") or default_input_dir
+        output_dir = input("请输入导出图片目录(目录相同会覆盖，注意备份, 默认为'./output'):") or default_output_dir
+        size = int(input("请输入目标尺寸大小(默认为512):") or 512)
+        scaleImageV2(input_dir, output_dir, size)
+    elif func == "12":
+        input_dir = input("请输入原始图片目录(默认为'./input'):") or default_input_dir
+        output_dir = input("请输入导出图片目录(目录相同会覆盖，注意备份, 默认为'./output'):") or default_output_dir
+        classifyImages(input_dir, output_dir)
     else:
         print("invalid input.")
         return
@@ -320,9 +407,12 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-        #scaleImage("./in", "./out", 1024, 10)
+        #scaleImage("./in", "./out", 1024, 0)
+        #scaleImageV2("./in", "./out", 1024)
         #mergeImages("./in", "out", 3, 2)
         #cropImages("./in", "./out", 90, 0, 50, 50)
+        #clearImageTags("./in", "./out")
+        #classifyImages("测试序列帧", "./out")
     except Exception as e:
         logging.exception(e)
     os.system("pause")

@@ -8,6 +8,7 @@ pillow = "*"
 pyinstaller = "*"
 python-nubia = "*"
 pyreadline3 = "*"
+pywebio = "*"
 
 [dev-packages]
 
