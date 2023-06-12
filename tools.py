@@ -189,21 +189,15 @@ def mergeDir(input_dir1, input_dir2, output_dir):
         copyfile(os.path.join(input_dir2, file), os.path.join(output_dir, file))
 
 def mergeImages(input_dir, output_dir, max_col, max_row):
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    img = _mergeImages(input_dir, max_col, max_row)
-    if img:
-        outpath = os.path.join(output_dir,  "{}.png".format(os.path.basename(input_dir)))
-        img.save(outpath, format="png", dpi=(300,300))
-
-    for filename in os.listdir(input_dir):
-        filepath = os.path.join(input_dir, filename)
-        if not os.path.isdir(filepath):
-            continue
-        img = _mergeImages(filepath, max_col, max_row)
+    for subdir in get_subdirs(input_dir):
+        #out_dir = re.sub('^{}'.format(re.escape(input_dir)), re.escape(output_dir), subdir)
+        out_dir = subdir.replace(input_dir, output_dir)
+        if not os.path.exists(out_dir):
+            os.makedirs(out_dir)
+        print(f"deal dir ({subdir} => {out_dir})...")
+        img = _mergeImages(subdir, max_col, max_row)
         if img:
-            outpath = os.path.join(output_dir,  f"{filename}.png")
+            outpath = os.path.join(out_dir,  "{}.png".format(os.path.basename(subdir)))
             img.save(outpath, format="png", dpi=(300,300))
 
 def _mergeImages(input_dir, max_col, max_row):
@@ -220,7 +214,7 @@ def _mergeImages(input_dir, max_col, max_row):
     # 获取第一张图片的宽度和高度
     image = Image.open(os.path.join(input_dir, files[0])).convert("RGBA")
     width, height = image.size
-    print(width, height, row, col)
+    #print(width, height, row, col)
     # 创建一个空白的长图，大小为 (col * width, row * height)
     long_image: Image.Image = Image.new("RGBA", (col * width, row * height), (255, 255, 255, 255))
     # 遍历每一张图片，将其粘贴到长图上对应的位置
@@ -303,19 +297,36 @@ def _dealClassifyImages(input_dir, output_dir):
         if os.path.isdir(filepath):
             continue
         basename, ext = os.path.splitext(filename)
-        dirname, classify, index = basename.split("_")
+        strs = basename.split("_")
+        classify = strs[-2]
+        index = strs[-1]
+
         targetdir = os.path.join(output_dir, classify)
         if not os.path.exists(targetdir):
             os.makedirs(targetdir)
         copyfile(filepath, os.path.join(targetdir, f"{index}{ext}"))
 
+
+def get_subdirs(path):
+    dirs = {}
+    stack = [path]
+    while stack:
+        current_path = stack.pop()
+        with os.scandir(current_path) as entries:
+            for entry in entries:
+                if entry.is_file():
+                    dirname = os.path.dirname(entry.path)
+                    if dirname not in dirs:
+                        dirs[dirname] = True
+                elif entry.is_dir():
+                    stack.append(entry.path)
+    return dirs.keys()
+
 def classifyImages(input_dir, output_dir):
-    for filename in os.listdir(input_dir):
-        filepath = os.path.join(input_dir, filename)
-        if not os.path.isdir(filepath):
-            continue
-        print(f"deal dir({filepath})...")
-        _dealClassifyImages(filepath, os.path.join(output_dir, filename))
+    for subdir in get_subdirs(input_dir):
+        print(f"deal dir({subdir})...")
+        #_dealClassifyImages(subdir, re.sub(r'^{}'.format(re.escape(input_dir)), re.escape(output_dir), subdir))
+        _dealClassifyImages(subdir, os.path.join(output_dir, os.path.basename(subdir)))
 
 
 def main():
@@ -409,10 +420,10 @@ if __name__ == "__main__":
         main()
         #scaleImage("./in", "./out", 1024, 0)
         #scaleImageV2("./in", "./out", 1024)
-        #mergeImages("./in", "out", 3, 2)
+        #mergeImages("./out", "./out2", 3, 2)
         #cropImages("./in", "./out", 90, 0, 50, 50)
         #clearImageTags("./in", "./out")
-        #classifyImages("测试序列帧", "./out")
+        classifyImages("./in", "./out")
     except Exception as e:
         logging.exception(e)
     os.system("pause")
